@@ -1,45 +1,62 @@
 class WebhookController < ApplicationController
-  // Lineからのcallbackか認証
-  protect_from_forgery with: :null_session
+  
+  protect_from_forgery :except => [:callback]
 
-  CHANNEL_SECRET = 'd60c7f003ea03b1737ef3ceff75e5fbb'
-  OUTBOUND_PROXY = '54.173.229.200'
-  CHANNEL_ACCESS_TOKEN = 'OyxxG4A0gRn9Y+XjSeiZBsRjXrkvguTnqSpfam2WemnFu44yanS1KaWdM6M9k3GvRku4a8kvG4ZqaoWU7JvifeciOPoEcWCKc6vBrbV5eG7cC2XaxhHtt56DmFmeTzJtV4392pD9P+RFFEaIexaIyAdB04t89/1O/w1cDnyilFU='
+require 'line/bot'
+require 'net/http'
 
-  def callback
-    unless is_validate_signature
-      render :nothing => true, status: 470
-    end
+def client
+  client = Line::Bot::Client.new { |config|
+  config.channel_secret = 'd60c7f003ea03b1737ef3ceff75e5fbb'
+  config.channel_token = 'OyxxG4A0gRn9Y+XjSeiZBsRjXrkvguTnqSpfam2WemnFu44yanS1KaWdM6M9k3GvRku4a8kvG4ZqaoWU7JvifeciOPoEcWCKc6vBrbV5eG7cC2XaxhHtt56DmFmeTzJtV4392pD9P+RFFEaIexaIyAdB04t89/1O/w1cDnyilFU='
+  }
+end
 
-    event = params["events"][0]
-    event_type = event["type"]
-    replyToken = event["replyToken"]
 
-    case event_type
-    when "message"
-      input_text = event["message"]["text"]
-      output_text = input_text
-    end
 
-    client = LineClient.new(CHANNEL_ACCESS_TOKEN, OUTBOUND_PROXY)
-    res = client.reply(replyToken, output_text)
+def callback
 
-    if res.status == 200
-      logger.info({success: res})
-    else
-      logger.info({fail: res})
-    end
+  body = request.body.read
 
-    render :nothing => true, status: :ok
-  end
+  signature = request.env['HTTP_X_LINE_SIGNATURE']
 
-  private
-  # verify access from LINE
-  def is_validate_signature
-    signature = request.headers["X-LINE-Signature"]
-    http_request_body = request.raw_post
-    hash = OpenSSL::HMAC::digest(OpenSSL::Digest::SHA256.new, CHANNEL_SECRET, http_request_body)
-    signature_answer = Base64.strict_encode64(hash)
-    signature == signature_answer
-  end
+  event = params["events"][0]
+  event_type = event["type"]
+
+  #送られたテキストメッセージをinput_textに取得
+  input_text = event["message"]["text"]
+
+  events = client.parse_events_from(body)
+
+  events.each { |event|
+
+    case event
+      when Line::Bot::Event::Message
+        case event.type
+          #テキストメッセージが送られた場合、そのままおうむ返しする
+          when Line::Bot::Event::MessageType::Text
+             message = {
+                  {type: 'text',text: "復唱するよ。"},
+                  {type: 'text',text: input_text}
+              }
+
+          #画像が送られた場合、適当な画像を送り返す
+          #画像を返すには、画像が保存されたURLを指定する。
+          #なお、おうむ返しするには、１度AWSなど外部に保存する必要がある。ここでは割愛する
+          when Line::Bot::Event::MessageType::Image
+            image_url = "https://XXXXXXXXXX/XXX.jpg"  #httpsであること
+              message = {
+                  type: "image",
+                  originalContentUrl: image_url,
+                  previewImageUrl: image_url
+                  }
+         end #event.type
+         #メッセージを返す
+         client.reply_message(event['replyToken'],message)
+    end #event
+ } #events.each
+
+end  #def
+
+
 end
