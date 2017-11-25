@@ -2,9 +2,9 @@ class WebhookController < ApplicationController
   // Lineからのcallbackか認証
   protect_from_forgery with: :null_session
 
-  CHANNEL_SECRET = ENV['d60c7f003ea03b1737ef3ceff75e5fbb']
+  CHANNEL_SECRET = ENV['CHANNEL_SECRET']
   OUTBOUND_PROXY = ENV['OUTBOUND_PROXY']
-  CHANNEL_ACCESS_TOKEN = ENV['OyxxG4A0gRn9Y+XjSeiZBsRjXrkvguTnqSpfam2WemnFu44yanS1KaWdM6M9k3GvRku4a8kvG4ZqaoWU7JvifeciOPoEcWCKc6vBrbV5eG7cC2XaxhHtt56DmFmeTzJtV4392pD9P+RFFEaIexaIyAdB04t89/1O/w1cDnyilFU=']
+  CHANNEL_ACCESS_TOKEN = ENV['CHANNEL_ACCESS_TOKEN']
 
   def callback
     unless is_validate_signature
