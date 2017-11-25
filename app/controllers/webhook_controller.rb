@@ -36,9 +36,9 @@ def callback
           #テキストメッセージが送られた場合、そのままおうむ返しする
           when Line::Bot::Event::MessageType::Text
              message = {
-                  {type: 'text',text: "復唱するよ。"},
-                  {type: 'text',text: input_text}
-              }
+                  type: 'text',
+                  text: input_text
+                  }
 
           #画像が送られた場合、適当な画像を送り返す
           #画像を返すには、画像が保存されたURLを指定する。
