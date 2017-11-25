@@ -26,6 +26,8 @@ class WebhookController < ApplicationController
     #送られたテキストメッセージをinput_textに取得
     input_text = event["message"]["text"]
 
+    user_id = event["source"]["userId"]
+
     events = client.parse_events_from(body)
 
     events.each { |event|
@@ -34,10 +36,11 @@ class WebhookController < ApplicationController
           case event.type
             #テキストメッセージが送られた場合、そのままおうむ返しする
             when Line::Bot::Event::MessageType::Text
-              message = {
-                type: 'text',
-                text: input_text
-              }
+              message = [
+                {type: 'text', text: input_text},
+                {type: 'text', text: user_id},
+                {type: 'text', text: "I know is you!"}
+              ]
 
             #画像が送られた場合、適当な画像を送り返す
             #画像を返すには、画像が保存されたURLを指定する。
