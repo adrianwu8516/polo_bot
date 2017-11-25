@@ -56,7 +56,4 @@ def callback
     end #event
  } #events.each
 
-end  #def
-
-
 end
