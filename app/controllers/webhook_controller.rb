@@ -22,16 +22,24 @@ class WebhookController < ApplicationController
 
     event = params["events"][0]
     event_type = event["type"]
-
-    #送られたテキストメッセージをinput_textに取得
-    input_text = event["message"]["text"]
-
     user_id = event["source"]["userId"]
 
     events = client.parse_events_from(body)
     events.each { |event|
       case event
+        when Line::Bot::Event::Postback
+          user_id = event["source"]["userId"]
+          postback_data = event["postback"]["data"]
+          message = [
+            {type: 'text', text: "Data Received"},
+            {type: 'text', text: postback_data}
+          ]
+          print '##################################'
+          client.reply_message(event['replyToken'],message)
         when Line::Bot::Event::Message
+          #送られたテキストメッセージをinput_textに取得
+          input_text = event["message"]["text"]
+
           case event.type
             #テキストメッセージが送られた場合、そのままおうむ返しする
             when Line::Bot::Event::MessageType::Text
