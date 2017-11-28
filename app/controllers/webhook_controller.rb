@@ -43,11 +43,7 @@ class WebhookController < ApplicationController
                   {type: 'text', text: t.last.to_s}
                 ]
               else
-                message = [
-                  {type: 'text', text: input_text},
-                  {type: 'text', text: user_id},
-                  {type: 'text', text: "I know is you!"}
-                ]
+                meun(user_id)
               end
 
             #画像が送られた場合、適当な画像を送り返す
@@ -66,4 +62,39 @@ class WebhookController < ApplicationController
       end #event
     } #events.each
   end
+
+
+  def meun(user_id)
+    #USAGE : push_exp(user_id)
+
+    message ={
+      "type": "template",
+      "altText": "this is a buttons template",
+      "template": {
+          "type": "buttons",
+          "thumbnailImageUrl": "https://i.imgur.com/QnUv4ER.jpg",
+          "title": "錢錢錢，哪裡有錢！",
+          "text": "我的口袋聞到了錢的味道",
+          "actions": [
+              {
+                "type": "postback",
+                "label": "報價",
+                "data": "action=buy&itemid=123"
+              },
+              {
+                "type": "postback",
+                "label": "提醒設置",
+                "data": "action=add&itemid=123"
+              },
+              {
+                "type": "uri",
+                "label": "See the project!",
+                "uri": "https://github.com/kkmanwilliam/polo_bot"
+              }
+          ]
+      }
+    }
+    client.push_message(user_id, message)
+  end
+
 end

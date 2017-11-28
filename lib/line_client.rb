@@ -40,5 +40,4 @@ class LineClient
     }
     post('/v2/bot/message/reply', body.to_json)
   end
-
 end
