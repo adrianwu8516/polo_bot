@@ -7,8 +7,8 @@ class WebhookController < ApplicationController
 
   def client
     client = Line::Bot::Client.new { |config|
-      config.channel_secret = 'd60c7f003ea03b1737ef3ceff75e5fbb'
-      config.channel_token = 'OyxxG4A0gRn9Y+XjSeiZBsRjXrkvguTnqSpfam2WemnFu44yanS1KaWdM6M9k3GvRku4a8kvG4ZqaoWU7JvifeciOPoEcWCKc6vBrbV5eG7cC2XaxhHtt56DmFmeTzJtV4392pD9P+RFFEaIexaIyAdB04t89/1O/w1cDnyilFU='
+      config.channel_secret = Rails.configuration.line_credential['channel_secret']
+      config.channel_token = Rails.configuration.line_credential['channel_token']
     }
   end
 
@@ -29,18 +29,26 @@ class WebhookController < ApplicationController
     user_id = event["source"]["userId"]
 
     events = client.parse_events_from(body)
-
     events.each { |event|
       case event
         when Line::Bot::Event::Message
           case event.type
             #テキストメッセージが送られた場合、そのままおうむ返しする
             when Line::Bot::Event::MessageType::Text
-              message = [
-                {type: 'text', text: input_text},
-                {type: 'text', text: user_id},
-                {type: 'text', text: "I know is you!"}
-              ]
+              currencies = JSON.parse(Poloniex.get('returnCurrencies')).keys
+              if(currencies.include? input_text)
+                t = getTicker(input_text)
+                message = [
+                  {type: 'text', text: input_text},
+                  {type: 'text', text: t.last.to_s}
+                ]
+              else
+                message = [
+                  {type: 'text', text: input_text},
+                  {type: 'text', text: user_id},
+                  {type: 'text', text: "I know is you!"}
+                ]
+              end
 
             #画像が送られた場合、適当な画像を送り返す
             #画像を返すには、画像が保存されたURLを指定する。
@@ -57,6 +65,5 @@ class WebhookController < ApplicationController
           client.reply_message(event['replyToken'],message)
       end #event
     } #events.each
-
   end
 end
