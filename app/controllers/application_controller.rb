@@ -8,14 +8,14 @@ class ApplicationController < ActionController::Base
 	require 'ticker_info'
 	require 'market_volume'
 
-	helper_method :getTicker, :getMarketVolumn, :HistoryInfo
+	helper_method :getTickerPair, :getMarketVolumn, :HistoryInfo
 
 	def initinlize
 		currencies = JSON.parse(Poloniex.get('returnCurrencies')).keys
 	end
 
-	def getTicker(symbol)
-		currency_pair = 'USDT_' + symbol
+	def getTickerPair(currency_A, currency_B)
+		currency_pair = currency_A + '_' + currency_B
 		target_json = JSON.parse(Poloniex.ticker)[currency_pair]
 		return TickerInfo.new(target_json)
 	end
@@ -24,7 +24,9 @@ class ApplicationController < ActionController::Base
 		return MarketVolume.new
 	end
 
-	def HistoryInfo(currency_pair, period_sec, period_num)
+	def getHistoryInfoPair(currency_A, currency_B, period_sec, period_num)
+		# period_sec can only be 300, 900, 1800, 7200, 14400, 86400
+		currency_pair = currency_A + '_' + currency_B
 		histroy_json = JSON.parse(Poloniex.get('returnChartData',{currencyPair:currency_pair, period: period_sec, start: (Time.now.to_i - period_sec*period_num) ,:end =>Time.now.to_i}))
 		HistoryInfo.new(histroy_json)
 	end
