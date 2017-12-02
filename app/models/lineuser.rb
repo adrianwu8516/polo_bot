@@ -1,0 +1,2 @@
+class Lineuser < ApplicationRecord
+end

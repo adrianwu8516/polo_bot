@@ -20,7 +20,7 @@ class ApplicationController < ActionController::Base
 	end
 
 	def getTradingCurrencies
-		return m = JSON.parse(Poloniex.volume).keys
+		return JSON.parse(Poloniex.volume).keys
 	end
 
 	def getHistoryInfoPair(currency_A, currency_B, period_sec, period_num)
@@ -31,7 +31,14 @@ class ApplicationController < ActionController::Base
 	end
 
 	def getCurrencies
-		return JSON.parse(Poloniex.get('returnCurrencies')).keys
+		array = Array.new
+		getTradingCurrencies.grep(/_/).each do |pair|
+			currency_B = pair.split("_")[1]
+			if array.exclude? currency_B
+				array.push(currency_B)
+			end
+		end
+		return array
 	end
 
 	def pairGenerator(unknown_str)
