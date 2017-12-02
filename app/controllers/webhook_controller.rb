@@ -4,6 +4,8 @@ class WebhookController < ApplicationController
 
   require 'line/bot'
   require 'net/http'
+  require 'polo_API_package'
+  require 'reminder_library'
 
   def client
     client = Line::Bot::Client.new { |config|
@@ -175,8 +177,14 @@ class WebhookController < ApplicationController
       tradingCurrencies_str = getTradingCurrencies_single(input_text).join("\n")
       message = [{type: 'text', text: "目前開放交易市場：\n"+tradingCurrencies_str}]
     elsif input_text == 'TEST'
-      fix_price_reminder('USDT_BTC', '<', '12000', user_id)
+      puts ""
+      puts "Test Start"
+      puts ""
+      #fix_price_reminder('USDT_BTC', '<', '12000', user_id)
       #drastic_price_change_reminder('USDT_BTC', user_id)
+      puts ""
+      puts "Test End"
+      puts ""
     elsif ['M', 'H', 'MENU', 'HOME'].include? input_text
       message = main_meun
     elsif ['G', 'GUIDE', 'HELP'].include? input_text

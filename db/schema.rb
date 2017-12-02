@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171202071656) do
+ActiveRecord::Schema.define(version: 20171202143021) do
 
   create_table "lineusers", force: :cascade do |t|
     t.string   "userId"
@@ -19,6 +19,17 @@ ActiveRecord::Schema.define(version: 20171202071656) do
     t.string   "subscribe"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "price_changes", force: :cascade do |t|
+    t.string   "lineuser_id"
+    t.string   "currency_pair"
+    t.integer  "period_sec",    default: 300
+    t.integer  "period_num",    default: 2
+    t.float    "range",         default: 0.03
+    t.string   "status",        default: "ON"
+    t.datetime "created_at",                   null: false
+    t.datetime "updated_at",                   null: false
   end
 
 end

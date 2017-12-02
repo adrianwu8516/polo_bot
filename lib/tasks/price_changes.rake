@@ -1,9 +1,13 @@
 # encoding: utf-8
-require 'polo_API_package'
 require 'line_client'
 require 'line/bot'
 require 'net/http'
+require 'history_info'
+require 'ticker_info'
+require 'market_volume'
+require 'polo_API_package'
 require 'reminder_library'
+
 
 def client
     client = Line::Bot::Client.new { |config|
@@ -12,10 +16,22 @@ def client
     }
 end
 
+def run_price_change_reminder
+    puts "run_price_change_reminder"
+    PriceChange.where(status:"ON").each do |task|
+    	puts "GO"
+    drastic_price_change_reminder(
+        task.currency_pair,
+        task.lineuser_id,
+        period_sec = task.period_sec,
+        period_num = task.period_num,
+        range =  task.range)
+    end
+end
+
 namespace :regular do
     desc "每5分鐘對於個股變動進行追蹤"
     task :drastic_price_change => :environment do
-        user_id = "Ua9486d09308c36ca4e7fd93614723d1f"
-        drastic_price_change_reminder("USDT", "BTC", user_id)
+        run_price_change_reminder
     end
 end

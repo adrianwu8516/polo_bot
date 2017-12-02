@@ -28,7 +28,7 @@ def getCurrencies
 	return array
 end
 
-def pairGenerator(unknown_str)
+def pairCorrector(unknown_str)
 	unknown_str_array = unknown_str.split('_')
 	if unknown_str_array.length == 2
 		currency_a = unknown_str_array[0]
@@ -49,6 +49,11 @@ def pairGenerator(unknown_str)
 	end
 end
 
+def getReadablePair(currency_pair)
+	currency_pair = currency_pair.split('_')
+	return currency_pair[1]+' to '+currency_pair[0]
+end
+
 def getTradingCurrencies_single(currency)
 	array = Array.new
 	getTradingCurrencies.each do |pair|
@@ -57,9 +62,4 @@ def getTradingCurrencies_single(currency)
 		end
 	end
 	return array
-end
-
-def getReadablePair(currency_pair)
-	currency_pair = currency_pair.split('_')
-	return currency_pair[1]+' to '+currency_pair[0]
 end
