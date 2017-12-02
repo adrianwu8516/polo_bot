@@ -17,7 +17,6 @@ class WebhookController < ApplicationController
     signature = request.env['HTTP_X_LINE_SIGNATURE']
 
     event = params["events"][0]
-    event_type = event["type"]
     user_id = event["source"]["userId"]
 
     body = request.body.read
