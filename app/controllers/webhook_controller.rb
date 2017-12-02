@@ -55,23 +55,34 @@ class WebhookController < ApplicationController
 
         when Line::Bot::Event::Message
           #送られたテキストメッセージをinput_textに取得
-          input_text = event["message"]["text"]
-
+          input_text = event["message"]["text"].upcase
           case event.type
             #テキストメッセージが送られた場合、そのままおうむ返しする
             when Line::Bot::Event::MessageType::Text
-              currencies = JSON.parse(Poloniex.get('returnCurrencies')).keys
-              if(currencies.include? input_text)
-                t = getTickerPair('USDT', input_text)
+              input_text = pairGenerator(input_text)
+              if(getTradingCurrencies.include? input_text)
+                t = getTickerPair(input_text)
+                currency_A = input_text.split('_')[0]
+                currency_B = input_text.split('_')[1]
                 message = [
-                  {type: 'text', text: input_text + 'Price : ' + t.last.to_s},
+                  {type: 'text', text: currency_B + ' to ' + currency_A + ' Price : ' + t.last.to_s},
                   {type: 'text', text: 'Change(24h) : ' + t.percentChangeString}
                 ]
-              elsif input_text == 'Test'
+              elsif (getCurrencies.include? input_text)
+                tradingCurrencies_str = getTradingCurrencies_single(input_text).join("\n")
+                message = [{type: 'text', text: "目前開放交易市場：\n"+tradingCurrencies_str}]
+              elsif input_text == 'TEST'
                 #fix_price_reminder('USDT', 'BTC', '<', '12000', user_id)
                 drastic_price_change_reminder('USDT', 'BTC', user_id)
-              else
-                main_meun(user_id)
+              elsif input_text == 'MENU'
+                message = main_meun
+              elsif input_text == 'GUIDE' || input_text == 'HELP'
+                message = [
+                  {type: 'text', text: "用法說明：\n輸入BTC_ETH_on可以開啟訂閱BTC對ETH的即時訊息。\n輸入BTC_ETH_off則可以關閉監控。\nUSDT_ETH_on則是開啟監控USDT對ETH的監控，以此類推。"},
+                  {type: 'text', text: "輸入貨幣名稱可以看到目前可以訂閱的交易市場。例如ZEC可以回傳目前有開放的ZEC市場。"}
+                ]
+              else 
+                message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
               end
 
             #画像が送られた場合、適当な画像を送り返す
@@ -93,7 +104,7 @@ class WebhookController < ApplicationController
 
 # Menu templates
 
-  def main_meun(user_id)
+  def main_meun
     # 不應該用push來做
     message ={
       "type": "template",
@@ -105,12 +116,12 @@ class WebhookController < ApplicationController
         "text": "我的口袋聞到了錢的味道",
         "actions": [
           {"type": "postback", "label": "報價","data": "Need_Quote"},
-          {"type": "postback", "label": "提醒設置", "data": "Need_Reminder"},
+          {"type": "postback", "label": "訂閱提醒", "data": "Need_Reminder"},
           {"type": "uri", "label": "See the project!", "uri": "https://github.com/kkmanwilliam/polo_bot"}
         ]
       }
     }
-    client.push_message(user_id, message)
+    return message
   end
 
   def need_quote_menu
@@ -120,12 +131,12 @@ class WebhookController < ApplicationController
       "template": {
         "type": "buttons",
         "title": "以Poloniex，對USDT數據為準",
-        "text": "任意輸入可以返回主選單",
+        "text": "輸入例如xmr_btc可查詢其他市場，munu返回主選單。",
         "actions": [
-          {"type": "message", "label": "BTC", "text": "BTC"},
-          {"type": "message", "label": "ETH", "text": "ETH"},
-          {"type": "message", "label": "ZEC", "text": "ZEC"},
-          {"type": "postback","label": "自行輸入", "data": "keyin"}
+          {"type": "message", "label": "BTC", "text": "USDT_BTC"},
+          {"type": "message", "label": "ETH", "text": "USDT_ETH"},
+          {"type": "message", "label": "XMR", "text": "USDT_XMR"},
+          {"type": "message", "label": "ZEC", "text": "USDT_ZEC"}
         ]
       }
     }
@@ -138,45 +149,28 @@ class WebhookController < ApplicationController
       "altText": "this is a buttons template",
       "template": {
         "type": "buttons",
-        "title": "設置提醒條件，我們會隨時告訴你最新資訊",
-        "text": "任意輸入可以返回主選單",
+        "title": "目前提供訂閱，每日行情晨報，各檔價量即時監控報告。",
+        "text": "「早報」提供每日市場焦點訊息，主要貨幣市況等。「各檔訂閱」包含即時暴漲暴跌監控，巨量成交監控。",
         "actions": [
-          {"type": "postback", "label": "設置提醒條件", "data": "new_a_setting"},
-          {"type": "postback", "label": "調整目前設置", "data": "change_settings"}
+          {"type": "postback", "label": "目前我的訂閱內容", "data": "my_subscription"},
+          {"type": "postback", "label": "訂閱內容總覽", "data": "change_subscription"},
+          {"type": "message", "label": "使用說明", "text": "GUIDE"},
         ]
       }
     }
   end
 
-  def new_a_setting_menu
-    message ={
-      "type": "template",
-      "altText": "this is a buttons template",
-      "template": {
-          "type": "buttons",
-          "title": "設置想要的提醒條件",
-          "text": "任意輸入可以返回主選單",
-          "actions": [
-              {"type": "postback","label": "早晨9點定時提醒", "data": "morning_letter"},
-              {"type": "postback","label": "漲跌7％提醒", "data": "activist"},
-              {"type": "postback","label": "固定價格提醒", "data": "fix_price"}
-          ]
-      }
-    }
-    return message
-  end
-
 # AUTO PUSH Reminders implement
 
-  def fix_price_reminder(currency_A, currency_B, logic, setting_price, user_id)
-    t = getTickerPair(currency_A, currency_B)
+  def fix_price_reminder(currency_pair, logic, setting_price, user_id)
+    t = getTickerPair(currency_pair)
 
     message = {
       "type": "template",
       "altText": "this is a confirm template",
       "template": {
           "type": "confirm",
-          "text": "Reminder\n"+currency_A+' to '+currency_B+' '+logic+' '+setting_price.to_s+"\nLastet Price : " + t.last.to_s+"\nChange(24h) : "+t.percentChangeString,
+          "text": "Reminder\n"+currency_pair+' '+logic+' '+setting_price.to_s+"\nLastet Price : " + t.last.to_s+"\nChange(24h) : "+t.percentChangeString,
           "actions": [
               {"type": "postback", "label": "Reset", "data": "reset_price"},
               {"type": "postback", "label": "Got it!", "data": "bye"}
@@ -199,7 +193,7 @@ class WebhookController < ApplicationController
         "altText": "this is a confirm template",
         "template": {
             "type": "confirm",
-            "text": "Drastic Change\n"+currency_A+' to '+currency_B+' raised '+ (change*100).to_s[0,4]+"%" + ' in past 5 mins, now is '+h.weightedAverage[0].to_s[0,4],
+            "text": "Drastic Change\n"+currency_B+' to '+currency_A+' raised '+ (change*100).to_s[0,4]+"%" + ' in past 5 mins, now is '+h.weightedAverage[0].to_s[0,4],
             "actions": [
                 {"type": "postback", "label": "Reset", "data": "reset_price"},
                 {"type": "postback", "label": "Got it!", "data": "bye"}
@@ -213,7 +207,7 @@ class WebhookController < ApplicationController
         "altText": "this is a confirm template",
         "template": {
             "type": "confirm",
-            "text": "Drastic Change\n"+currency_A+' to '+currency_B+' slumped '+ (change*-100).to_s[0,4]+"%" + ' in past 5 mins'+h.weightedAverage[0].to_s[0,4],
+            "text": "Drastic Change\n"+currency_B+' to '+currency_A+' slumped '+ (change*-100).to_s[0,4]+"%" + ' in past 5 mins'+h.weightedAverage[0].to_s[0,4],
             "actions": [
                 {"type": "postback", "label": "Reset", "data": "reset_price"},
                 {"type": "postback", "label": "Got it!", "data": "bye"}
