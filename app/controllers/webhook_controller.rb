@@ -32,7 +32,7 @@ class WebhookController < ApplicationController
           input_text = event["message"]["text"].upcase
           case event.type
             when Line::Bot::Event::MessageType::Text
-              message = messageTextHandler(input_text)
+              message = messageTextHandler(input_text, user_id)
             else
               message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
           end
@@ -134,7 +134,7 @@ class WebhookController < ApplicationController
       "altText": "this is a confirm template",
       "template": {
           "type": "confirm",
-          "text": "Reminder\n"+currency_pair+' '+logic+' '+setting_price.to_s+"\nLastet Price : " + t.last.to_s+"\nChange(24h) : "+t.percentChangeString,
+          "text": "Reminder\n"+getReadablePair(currency_pair)+' '+logic+' '+setting_price.to_s+"\nLastet Price : " + t.last.to_s+"\nChange(24h) : "+t.percentChangeString,
           "actions": [
               {"type": "postback", "label": "Reset", "data": "reset_price"},
               {"type": "postback", "label": "Got it!", "data": "bye"}
@@ -148,16 +148,17 @@ class WebhookController < ApplicationController
     end
   end
 
-  def drastic_price_change_reminder(currency_A, currency_B, user_id, period_sec=300, period_num=2)
-    h = getHistoryInfoPair(currency_A, currency_B, period_sec, period_num)
+  def drastic_price_change_reminder(currency_pair, user_id, period_sec=300, period_num=2, range=0.001)
+    # ragne cannot be 0, period_sec can only be 300, 900, 1800, 7200, 14400, 86400
+    h = getHistoryInfoPair(currency_pair, period_sec, period_num)
     change = (h.weightedAverage[1] - h.weightedAverage[0])/h.weightedAverage[0]
-    if change > 0
+    if change > range
       message = {
         "type": "template",
         "altText": "this is a confirm template",
         "template": {
             "type": "confirm",
-            "text": "Drastic Change\n"+currency_B+' to '+currency_A+' raised '+ (change*100).to_s[0,4]+"%" + ' in past 5 mins, now is '+h.weightedAverage[0].to_s[0,4],
+            "text": "Drastic Change\n"+getReadablePair(currency_pair)+' raised '+ (change*100).to_s[0,4]+"%" + ' in past 5 mins, now is '+h.weightedAverage[0].to_s[0,4],
             "actions": [
                 {"type": "postback", "label": "Reset", "data": "reset_price"},
                 {"type": "postback", "label": "Got it!", "data": "bye"}
@@ -165,13 +166,13 @@ class WebhookController < ApplicationController
         }
       }
       client.push_message(user_id, message)
-    elsif change < 0
+    elsif change < (-1*range)
       message = {
         "type": "template",
         "altText": "this is a confirm template",
         "template": {
             "type": "confirm",
-            "text": "Drastic Change\n"+currency_B+' to '+currency_A+' slumped '+ (change*-100).to_s[0,4]+"%" + ' in past 5 mins'+h.weightedAverage[0].to_s[0,4],
+            "text": "Drastic Change\n"+getReadablePair(currency_pair)+' slumped '+ (change*-100).to_s[0,4]+"%" + ' in past 5 mins'+h.weightedAverage[0].to_s[0,4],
             "actions": [
                 {"type": "postback", "label": "Reset", "data": "reset_price"},
                 {"type": "postback", "label": "Got it!", "data": "bye"}
@@ -211,7 +212,7 @@ class WebhookController < ApplicationController
     return message
   end
 
-  def messageTextHandler(input_text)
+  def messageTextHandler(input_text, user_id)
     input_text = pairGenerator(input_text)
     if(getTradingCurrencies.include? input_text)
       t = getTickerPair(input_text)
@@ -225,16 +226,16 @@ class WebhookController < ApplicationController
       tradingCurrencies_str = getTradingCurrencies_single(input_text).join("\n")
       message = [{type: 'text', text: "目前開放交易市場：\n"+tradingCurrencies_str}]
     elsif input_text == 'TEST'
-      #fix_price_reminder('USDT', 'BTC', '<', '12000', user_id)
-      drastic_price_change_reminder('USDT', 'BTC', user_id)
-    elsif ['MENU', 'HOME'].include? input_text
+      fix_price_reminder('USDT_BTC', '<', '12000', user_id)
+      #drastic_price_change_reminder('USDT_BTC', user_id)
+    elsif ['M', 'H', 'MENU', 'HOME'].include? input_text
       message = main_meun
-    elsif ['GUIDE', 'HELP'].include? input_text
+    elsif ['G', 'GUIDE', 'HELP'].include? input_text
       message = [
         {type: 'text', text: "用法說明：\n輸入BTC_ETH_on可以開啟訂閱BTC對ETH的即時訊息。\n輸入BTC_ETH_off則可以關閉監控。\nUSDT_ETH_on則是開啟監控USDT對ETH的監控，以此類推。"},
         {type: 'text', text: "輸入貨幣名稱可以看到目前可以訂閱的交易市場。例如ZEC可以回傳目前有開放的ZEC市場。"}
       ]
-    elsif ["CURRENCY", "CURRENCIES", "C"].include? input_text
+    elsif ["C", "CURRENCY", "CURRENCIES"].include? input_text
       message = [{type: 'text', text: getCurrencies.sort.join("\n")}]
     else
       message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
