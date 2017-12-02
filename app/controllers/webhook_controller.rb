@@ -34,7 +34,7 @@ class WebhookController < ApplicationController
             when Line::Bot::Event::MessageType::Text
               message = messageTextHandler(input_text, user_id)
             else
-              message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
+              message = order_fail_message
           end
 
         when Line::Bot::Event::Follow
@@ -50,7 +50,7 @@ class WebhookController < ApplicationController
     } #events.each
   end
 
-# Menu templates
+# Menu/Message templates
 
   def hello_meun
     message ={
@@ -67,7 +67,6 @@ class WebhookController < ApplicationController
         ]
       }
     }
-    return message
   end
 
   def main_meun
@@ -85,7 +84,6 @@ class WebhookController < ApplicationController
         ]
       }
     }
-    return message
   end
 
   def need_quote_menu
@@ -104,7 +102,6 @@ class WebhookController < ApplicationController
         ]
       }
     }
-    return message
   end
 
   def need_reminder_menu
@@ -124,64 +121,18 @@ class WebhookController < ApplicationController
     }
   end
 
-# AUTO PUSH Reminders implement
-
-  def fix_price_reminder(currency_pair, logic, setting_price, user_id)
-    t = getTickerPair(currency_pair)
-
-    message = {
-      "type": "template",
-      "altText": "this is a confirm template",
-      "template": {
-          "type": "confirm",
-          "text": "Reminder\n"+getReadablePair(currency_pair)+' '+logic+' '+setting_price.to_s+"\nLastet Price : " + t.last.to_s+"\nChange(24h) : "+t.percentChangeString,
-          "actions": [
-              {"type": "postback", "label": "Reset", "data": "reset_price"},
-              {"type": "postback", "label": "Got it!", "data": "bye"}
-          ]
-      }
-    }
-    if (logic == '>') && (t.last >= setting_price.to_f)
-      client.push_message(user_id, message)
-    elsif (logic == '<') && (t.last <= setting_price.to_f)
-      client.push_message(user_id, message)
-    end
+  def guide_message
+    message = [
+        {type: 'text', text: "用法說明：\n輸入BTC_ETH_on可以開啟訂閱BTC對ETH的即時訊息。\n輸入BTC_ETH_off則可以關閉監控。\nUSDT_ETH_on則是開啟監控USDT對ETH的監控，以此類推。"},
+        {type: 'text', text: "輸入貨幣名稱可以看到目前可以訂閱的交易市場。例如ZEC可以回傳目前有開放的ZEC市場。"}
+      ]
   end
 
-  def drastic_price_change_reminder(currency_pair, user_id, period_sec=300, period_num=2, range=0.001)
-    # ragne cannot be 0, period_sec can only be 300, 900, 1800, 7200, 14400, 86400
-    h = getHistoryInfoPair(currency_pair, period_sec, period_num)
-    change = (h.weightedAverage[1] - h.weightedAverage[0])/h.weightedAverage[0]
-    if change > range
-      message = {
-        "type": "template",
-        "altText": "this is a confirm template",
-        "template": {
-            "type": "confirm",
-            "text": "Drastic Change\n"+getReadablePair(currency_pair)+' raised '+ (change*100).to_s[0,4]+"%" + ' in past 5 mins, now is '+h.weightedAverage[0].to_s[0,4],
-            "actions": [
-                {"type": "postback", "label": "Reset", "data": "reset_price"},
-                {"type": "postback", "label": "Got it!", "data": "bye"}
-            ]
-        }
-      }
-      client.push_message(user_id, message)
-    elsif change < (-1*range)
-      message = {
-        "type": "template",
-        "altText": "this is a confirm template",
-        "template": {
-            "type": "confirm",
-            "text": "Drastic Change\n"+getReadablePair(currency_pair)+' slumped '+ (change*-100).to_s[0,4]+"%" + ' in past 5 mins'+h.weightedAverage[0].to_s[0,4],
-            "actions": [
-                {"type": "postback", "label": "Reset", "data": "reset_price"},
-                {"type": "postback", "label": "Got it!", "data": "bye"}
-            ]
-        }
-      }
-      client.push_message(user_id, message)
-    end
+  def order_fail_message
+    message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
   end
+
+
 
 # Event Handling Logic
 
@@ -213,13 +164,11 @@ class WebhookController < ApplicationController
   end
 
   def messageTextHandler(input_text, user_id)
-    input_text = pairGenerator(input_text)
+    input_text = pairCorrector(input_text)
     if(getTradingCurrencies.include? input_text)
       t = getTickerPair(input_text)
-      currency_A = input_text.split('_')[0]
-      currency_B = input_text.split('_')[1]
       message = [
-        {type: 'text', text: currency_B + ' to ' + currency_A + ' Price : ' + t.last.to_s},
+        {type: 'text', text: getReadablePair(input_text) + ' Price : ' + t.last.to_s},
         {type: 'text', text: 'Change(24h) : ' + t.percentChangeString}
       ]
     elsif (getCurrencies.include? input_text)
@@ -231,14 +180,11 @@ class WebhookController < ApplicationController
     elsif ['M', 'H', 'MENU', 'HOME'].include? input_text
       message = main_meun
     elsif ['G', 'GUIDE', 'HELP'].include? input_text
-      message = [
-        {type: 'text', text: "用法說明：\n輸入BTC_ETH_on可以開啟訂閱BTC對ETH的即時訊息。\n輸入BTC_ETH_off則可以關閉監控。\nUSDT_ETH_on則是開啟監控USDT對ETH的監控，以此類推。"},
-        {type: 'text', text: "輸入貨幣名稱可以看到目前可以訂閱的交易市場。例如ZEC可以回傳目前有開放的ZEC市場。"}
-      ]
+      message = guide_message
     elsif ["C", "CURRENCY", "CURRENCIES"].include? input_text
       message = [{type: 'text', text: getCurrencies.sort.join("\n")}]
     else
-      message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
+      message = order_fail_message
     end
     return message
   end

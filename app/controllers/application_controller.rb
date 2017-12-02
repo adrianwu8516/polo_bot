@@ -6,5 +6,5 @@ class ApplicationController < ActionController::Base
 	require 'ticker_info'
 	require 'market_volume'
 	require 'polo_API_package'
-	#require 'reminder_library'
+	require 'reminder_library'
 end
