@@ -10,7 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171202143021) do
+ActiveRecord::Schema.define(version: 20171202154124) do
+
+  create_table "fix_prices", force: :cascade do |t|
+    t.string   "lineuser_id"
+    t.string   "currency_pair"
+    t.string   "logic"
+    t.float    "setting_price"
+    t.string   "status",        default: "ON"
+    t.datetime "created_at",                   null: false
+    t.datetime "updated_at",                   null: false
+  end
 
   create_table "lineusers", force: :cascade do |t|
     t.string   "userId"

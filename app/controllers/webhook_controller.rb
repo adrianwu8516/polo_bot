@@ -24,7 +24,19 @@ class WebhookController < ApplicationController
     body = request.body.read
     events = client.parse_events_from(body)
     events.each { |event|
+      puts ""
+      puts ""
+      puts event
+      puts ""
+      puts ""
       case event
+        when Line::Bot::API::Error
+          puts ""
+          puts ""
+          puts event["message"]
+          puts event["details"]
+          puts ""
+          puts ""
         when Line::Bot::Event::Postback
           postback_data = event["postback"]["data"]
           message = postbackHandler(postback_data)

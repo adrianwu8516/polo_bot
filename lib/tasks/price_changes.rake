@@ -16,16 +16,30 @@ def client
     }
 end
 
+# 無法讓變數跟字符一起跑
+
 def run_price_change_reminder
     puts "run_price_change_reminder"
     PriceChange.where(status:"ON").each do |task|
-    	puts "GO"
-    drastic_price_change_reminder(
-        task.currency_pair,
-        task.lineuser_id,
-        period_sec = task.period_sec,
-        period_num = task.period_num,
-        range =  task.range)
+    	drastic_price_change_reminder(
+	        task.currency_pair,
+	        task.lineuser_id,
+	        period_sec = task.period_sec,
+	        period_num = task.period_num,
+	        range =  task.range
+        )
+    end
+end
+
+def run_fix_price_reminder
+    puts "run_fix_price_reminder"
+    FixPrice.where(status:"ON").each do |task|
+    	fix_price_reminder(
+	        currency_pair = task.currency_pair,
+	        logic = task.logic,
+	        setting_price = task.setting_price,
+	        lineuser_id = task.lineuser_id
+        )
     end
 end
 
@@ -33,5 +47,6 @@ namespace :regular do
     desc "每5分鐘對於個股變動進行追蹤"
     task :drastic_price_change => :environment do
         run_price_change_reminder
+        #run_fix_price_reminder
     end
 end

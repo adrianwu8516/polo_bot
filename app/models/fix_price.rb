@@ -1,0 +1,2 @@
+class FixPrice < ApplicationRecord
+end
