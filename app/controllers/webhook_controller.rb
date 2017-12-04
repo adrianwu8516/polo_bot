@@ -147,6 +147,13 @@ class WebhookController < ApplicationController
     message = [{type: 'text', text: "這並不是一個指令或貨幣名稱，請輸入help取得更多說明！"}]
   end
 
+  def no_market_message
+    message = [{type: 'text', text: "Poloniex中沒有這種交易！"}]
+  end
+
+  def setting_fail_message
+    message = [{type: 'text', text: "設置失敗，請檢查輸入\n新增追蹤：+ETH_BTC>30\n取消追蹤：-ETH_BTC>30"}]
+  end
 
   def marketcap10_message
     string_lineA = ""
@@ -219,8 +226,8 @@ class WebhookController < ApplicationController
   end
 
   def messageTextHandler(input_text, user_id)
-    input_text = pairCorrector(input_text)
-    if(getTradingCurrencies.include? input_text)
+    if(getTradingCurrencies.include? pairCorrector(input_text))
+      input_text = pairCorrector(input_text)
       t = getTickerPair(input_text)
       message = [
         {type: 'text', text: getReadablePair(input_text) + ' Price : ' + t.last.to_s},
@@ -245,24 +252,37 @@ class WebhookController < ApplicationController
       puts ""
       puts "Test End"
       puts ""
-    elsif input_text.include? "+" and input_text.include? ">"
-      setting_info = input_text[1..-1].split(/>/)
+    elsif !input_text[/(\+{1}|\-{1})/].nil? and !input_text[/(<{1}|>{1})/].nil?
+      setting_info = input_text[1..-1].split(/(<|>)/)
       setting_info[0] = pairCorrector(setting_info[0])
       if (getTradingCurrencies.include? setting_info[0])
-        #fix_price_reminder(setting_info[0], ">", setting_info[1], user_id)
-        message = [{type: 'text', text: "Got it"}]
+        if input_text.include? "+"
+          message = [{type: 'text', text: "Price Reminder On\n"+setting_info[0]+setting_info[1]+setting_info[2]}]
+        elsif input_text.include? "-"
+          message = [{type: 'text', text: "Price Reminder Off\n"+setting_info[0]+setting_info[1]+setting_info[2]}]
+        else
+          message = setting_fail_message
+        end
       else
-        message = order_fail_message
+        message = no_market_message
       end
-    elsif input_text.include? "+" and input_text.include? "<"
-      setting_info = input_text[1..-1].split(/</)
-      setting_info[0] = pairCorrector(setting_info[0])
-      if (getTradingCurrencies.include? setting_info[0])
-        #fix_price_reminder(setting_info[0], ">", setting_info[1], user_id)
-        message = [{type: 'text', text: "Got it"}]
+    elsif !input_text[/(\+{1}|\-{1})/].nil? and input_text[/(<{1}|>{1})/].nil?
+      setting_info = pairCorrector(input_text[1..-1])
+      puts input_text[1..-1]
+      puts "====================="
+      puts setting_info
+      if (getTradingCurrencies.include? setting_info)
+        if input_text.include? "+"
+          message = [{type: 'text', text: "Subscription On:\n"+setting_info}]
+        elsif input_text.include? "-"
+          message = [{type: 'text', text: "Price Reminder Off:\n"+setting_info}]
+        else
+          message = setting_fail_message
+        end
       else
-        message = order_fail_message
+        message = no_market_message
       end
+
     elsif ['M', 'H', 'MENU', 'HOME'].include? input_text
       message = main_meun
     elsif ['G', 'GUIDE', 'HELP'].include? input_text
