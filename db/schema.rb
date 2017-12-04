@@ -10,7 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171202154124) do
+ActiveRecord::Schema.define(version: 20171203040211) do
+
+  create_table "coinmarketcaps", force: :cascade do |t|
+    t.integer  "ranking"
+    t.string   "currency_name"
+    t.string   "symbol"
+    t.float    "market_cap"
+    t.float    "price"
+    t.float    "current_supply"
+    t.float    "volumn"
+    t.float    "hourly_change"
+    t.float    "daily_change"
+    t.float    "weekly_change"
+    t.datetime "created_at",     null: false
+    t.datetime "updated_at",     null: false
+  end
 
   create_table "fix_prices", force: :cascade do |t|
     t.string   "lineuser_id"

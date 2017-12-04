@@ -1,0 +1,2 @@
+class Coinmarketcap < ApplicationRecord
+end

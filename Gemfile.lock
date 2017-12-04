@@ -209,6 +209,7 @@ DEPENDENCIES
   jquery-rails
   line-bot-api
   listen (~> 3.0.5)
+  nokogiri
   pg
   poloniex
   puma (~> 3.0)
@@ -226,4 +227,4 @@ DEPENDENCIES
   whenever
 
 BUNDLED WITH
-   1.13.7
+   1.16.0

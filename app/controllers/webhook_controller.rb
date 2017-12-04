@@ -94,6 +94,7 @@ class WebhookController < ApplicationController
         "actions": [
           {"type": "postback", "label": "報價","data": "Need_Quote"},
           {"type": "postback", "label": "訂閱提醒", "data": "Need_Reminder"},
+          {"type": "postback", "label": "今日早報", "data": "morning_news"},
           {"type": "uri", "label": "See the project!", "uri": "https://github.com/kkmanwilliam/polo_bot"}
         ]
       }
@@ -147,6 +148,44 @@ class WebhookController < ApplicationController
   end
 
 
+  def marketcap10_message
+    string_lineA = ""
+    string_lineB = ""
+    sqlite_sql = "
+    select  d1.symbol as symbol,
+            d1.currency_name as currency_name,
+            d1.ranking - ranking2 as ranking_change,
+            d1.market_cap - market_cap2 as market_cap_change,
+            d1.ranking as ranking,
+            d1.market_cap as market_cap
+      from coinmarketcaps as d1 INNER JOIN (
+        select ranking as ranking2,
+              market_cap as market_cap2,
+              symbol,
+              currency_name
+        from coinmarketcaps
+        where date(created_at) = date ('now')
+        ) as d2 on d1.symbol = d2.symbol and d1.currency_name = d2.currency_name
+      where date(created_at) = date ('now') and d1.ranking < 101
+      order by d1.ranking
+    "
+    records_array = ActiveRecord::Base.connection.execute(sqlite_sql)
+    records_array[0..4].each do |hash|
+      string_lineA = string_lineA + hash[0].to_s+" : "+(hash[5]/10000000000).to_s[0,4]+"B\n"
+    end
+    records_array[5..9].each do |hash|
+      string_lineB = string_lineB + hash[0].to_s+" : "+(hash[5]/10000000000).to_s[0,4]+"B\n"
+    end
+    message = [{type: 'text', text:"本日市場規模前10名"},
+               {type: 'text', text:string_lineA[0..-3]},
+               {type: 'text', text:string_lineB[0..-3]},]# Not yet, should put into database
+  end
+
+  def pricechange10_message # Not yet
+  end
+
+  def capchange10_message # Not yet
+  end
 
 # Event Handling Logic
 
@@ -164,8 +203,10 @@ class WebhookController < ApplicationController
         message = [{type: 'text', text: "Not Implemented"}]
       when "keyin"
         message = [{type: 'text', text: "Type name here!"}]
+      when "marketcap10"
+        message = marketcap10
       when "back"
-        main_meun(user_id)
+        message = main_meun
       when "bye"
         message = [{type: 'text', text: "Good Luck Dawg!"}]
       else
@@ -185,18 +226,43 @@ class WebhookController < ApplicationController
         {type: 'text', text: getReadablePair(input_text) + ' Price : ' + t.last.to_s},
         {type: 'text', text: 'Change(24h) : ' + t.percentChangeString}
       ]
-    elsif (getCurrencies.include? input_text)
-      tradingCurrencies_str = getTradingCurrencies_single(input_text).join("\n")
-      message = [{type: 'text', text: "目前開放交易市場：\n"+tradingCurrencies_str}]
+    elsif (Coinmarketcap.distinct.pluck(:symbol).include? input_text)
+      if getCurrencies.include? input_text
+        tradingCurrencies_str = "\n目前開放交易市場：\n"+getTradingCurrencies_single(input_text).join("\n")
+      else
+        tradingCurrencies_str = "\nPoloniex未開放交易"
+      end
+      info = Coinmarketcap.where(symbol: input_text).first
+      reply_info = info.currency_name + "(" + info.symbol + ")\n" + "Ranking:" + info.ranking.to_s + tradingCurrencies_str
+      message = [{type: 'text', text: reply_info}]
     elsif input_text == 'TEST'
       puts ""
       puts "Test Start"
       puts ""
+      message = morning_news("Ua9486d09308c36ca4e7fd93614723d1f")
       #fix_price_reminder('USDT_BTC', '<', '12000', user_id)
       #drastic_price_change_reminder('USDT_BTC', user_id)
       puts ""
       puts "Test End"
       puts ""
+    elsif input_text.include? "+" and input_text.include? ">"
+      setting_info = input_text[1..-1].split(/>/)
+      setting_info[0] = pairCorrector(setting_info[0])
+      if (getTradingCurrencies.include? setting_info[0])
+        #fix_price_reminder(setting_info[0], ">", setting_info[1], user_id)
+        message = [{type: 'text', text: "Got it"}]
+      else
+        message = order_fail_message
+      end
+    elsif input_text.include? "+" and input_text.include? "<"
+      setting_info = input_text[1..-1].split(/</)
+      setting_info[0] = pairCorrector(setting_info[0])
+      if (getTradingCurrencies.include? setting_info[0])
+        #fix_price_reminder(setting_info[0], ">", setting_info[1], user_id)
+        message = [{type: 'text', text: "Got it"}]
+      else
+        message = order_fail_message
+      end
     elsif ['M', 'H', 'MENU', 'HOME'].include? input_text
       message = main_meun
     elsif ['G', 'GUIDE', 'HELP'].include? input_text
@@ -231,6 +297,25 @@ class WebhookController < ApplicationController
     end
   end
 
-  #fix_price_reminder('USDT', 'BTC', '<', '12000', "Ua9486d09308c36ca4e7fd93614723d1f")
-  #drastic_price_change_reminder('USDT', 'BTC', "Ua9486d09308c36ca4e7fd93614723d1f")
+  def morning_news(lineuser_id)
+    news_today = "功能未完成！"
+    message = {
+      "type": "template",
+      "altText": "this is a buttons template",
+      "template": {
+          "type": "buttons",
+          "thumbnailImageUrl": "https://i.imgur.com/USTP1tW.png",
+          "imageAspectRatio": "rectangle",
+          "imageSize": "cover",
+          "title": "Breaking News!!",
+          "text": news_today,
+          "actions": [
+              {"type": "postback", "label": "市值前10", "data": "marketcap10_message"},
+              {"type": "postback", "label": "價格漲跌前10", "data": "pricechange10_message"},
+              {"type": "postback", "label": "市值漲跌前10", "data": "capchange10_message"}
+          ]
+      }
+    }
+    #client.push_message(lineuser_id, message)
+  end
 end

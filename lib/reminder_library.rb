@@ -69,3 +69,5 @@
       client.push_message(lineuser_id, message)
     end
   end
+
+  
