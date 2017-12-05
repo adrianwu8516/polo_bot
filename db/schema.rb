@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171203040211) do
+ActiveRecord::Schema.define(version: 20171204144739) do
 
   create_table "coinmarketcaps", force: :cascade do |t|
     t.integer  "ranking"
@@ -52,6 +52,14 @@ ActiveRecord::Schema.define(version: 20171203040211) do
     t.integer  "period_sec",    default: 300
     t.integer  "period_num",    default: 2
     t.float    "range",         default: 0.03
+    t.string   "status",        default: "ON"
+    t.datetime "created_at",                   null: false
+    t.datetime "updated_at",                   null: false
+  end
+
+  create_table "subscriptions", force: :cascade do |t|
+    t.string   "lineuser_id"
+    t.string   "currency_pair"
     t.string   "status",        default: "ON"
     t.datetime "created_at",                   null: false
     t.datetime "updated_at",                   null: false
