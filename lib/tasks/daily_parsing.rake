@@ -63,7 +63,7 @@ end
 
 namespace :regular do
     desc "每天抓取市場資料"
-    task :CoinmarketcapToday => :environment do
+    task :coinmarketcapToday => :environment do
     	recordToDataBase
     	puts "Job's done"
     end
