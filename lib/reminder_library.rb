@@ -40,6 +40,9 @@
     # ragne cannot be 0, period_sec can only be 300, 900, 1800, 7200, 14400, 86400
     h = getHistoryInfoPair(currency_pair, period_sec, period_num)
     change = (h.weightedAverage[1].to_f - h.weightedAverage[0].to_f) / h.weightedAverage[0].to_f
+    if !change.is_a? Float
+      return
+    end
     if change > range
       text = "Drastic Change\n"+getReadablePair(currency_pair)+" raised "+ (change*100).to_s[0,4]+"% in past 5 mins, now is "+h.weightedAverage[0].to_s[0,4]
       PushRecord.create(content: text, message_type: "drastic", news_date: Time.current.strftime("%d/%m/%Y %H:%M"), target_market: currency_pair, status: "Pending")
