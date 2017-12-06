@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171204144739) do
+ActiveRecord::Schema.define(version: 20171206000047) do
 
   create_table "coinmarketcaps", force: :cascade do |t|
     t.integer  "ranking"
@@ -55,6 +55,15 @@ ActiveRecord::Schema.define(version: 20171204144739) do
     t.string   "status",        default: "ON"
     t.datetime "created_at",                   null: false
     t.datetime "updated_at",                   null: false
+  end
+
+  create_table "push_records", force: :cascade do |t|
+    t.string   "content"
+    t.string   "message_type"
+    t.string   "news_date"
+    t.datetime "created_at",    null: false
+    t.datetime "updated_at",    null: false
+    t.string   "target_market"
   end
 
   create_table "subscriptions", force: :cascade do |t|

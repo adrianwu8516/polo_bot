@@ -1,0 +1,2 @@
+class PushRecord < ApplicationRecord
+end

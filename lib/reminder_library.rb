@@ -51,7 +51,7 @@
         }
       }
       puts message
-      client.push_message(lineuser_id, message)
+      #client.push_message(lineuser_id, message)
     elsif change < (-1*range)
       message = {
         "type": "template",
@@ -66,8 +66,6 @@
         }
       }
       puts message
-      client.push_message(lineuser_id, message)
+      #client.push_message(lineuser_id, message)
     end
   end
-
-  

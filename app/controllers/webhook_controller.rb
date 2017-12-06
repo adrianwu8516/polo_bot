@@ -238,113 +238,6 @@ class WebhookController < ApplicationController
     }
   end
 
-  def marketcap10_message
-    sqlite_sql = '
-    select
-        ranking,
-        symbol as symbol,
-        currency_name as currency_name,
-        market_cap/10000000000 as market_cap,
-        market_cap / (select sum(market_cap) from coinmarketcaps) * 100 as percent
-    from coinmarketcaps
-    where date(created_at) = date ("now") and ranking < 16
-    order by ranking'
-    string_line = ""
-    records_array = ActiveRecord::Base.connection.execute(sqlite_sql)
-    records_array[0..14].each do |hash|
-      string_line = string_line + hash["ranking"].to_s + "."+hash["currency_name"]+"/"+hash["symbol"]+" : "+hash["market_cap"].to_s[0..5]+"B("+hash["percent"].to_s[0..4]+"%)\n\n"
-    end
-    message = [{type: 'text', text:"本日市場規模前15名"},
-               {type: 'text', text:string_line[0..-5]}]# Not yet, should put into database
-  end
-
-  def pricechange10_message # Not yet
-    sqlite_sql_up = '
-    select
-        ranking,
-        currency_name,
-        symbol as symbol,
-        daily_change
-    from coinmarketcaps
-    where date(created_at) = date ("now") and ranking < 51 and daily_change > 0
-    order by daily_change desc limit 5
-    '
-    sqlite_sql_down = '
-    select
-        ranking,
-        currency_name,
-        symbol as symbol,
-        daily_change
-    from coinmarketcaps
-    where date(created_at) = date ("now") and ranking < 51 and daily_change < 0
-    order by daily_change limit 5
-    '
-    string_line = ""
-    records_array_up = ActiveRecord::Base.connection.execute(sqlite_sql_up)
-    records_array_down = ActiveRecord::Base.connection.execute(sqlite_sql_down)
-    records_array_up.each do |hash|
-      string_line = string_line + hash["currency_name"]+"/"+hash["symbol"]+"(rank"+hash["ranking"].to_s+"): price"+(hash["daily_change"]>0 ? " up " : " down ")+hash["daily_change"].to_s+"%\n\n"
-    end
-    records_array_down.each do |hash|
-      string_line = string_line + hash["currency_name"]+"/"+hash["symbol"]+"(rank"+hash["ranking"].to_s+"): price"+(hash["daily_change"]>0 ? " up " : " down ")+hash["daily_change"].to_s+"%\n\n"
-    end
-    message = [{type: 'text', text:"本日漲跌幅15名"},
-               {type: 'text', text:string_line[0..-5]}]# Not yet, should put into database
-  end
-
-  def capchange5_message
-    sqlite_sql = "
-    select  d1.symbol as symbol,
-            d1.currency_name as currency_name,
-            (d1.market_cap - market_cap2) /market_cap2 * 100 as market_cap_change,
-            d1.weekly_change as weekly_change,
-            d1.ranking as ranking
-      from coinmarketcaps as d1 INNER JOIN (
-        select ranking as ranking2,
-              market_cap as market_cap2,
-              symbol,
-              currency_name
-        from coinmarketcaps
-        where date(created_at) = date ('now' , '-1 day')
-        ) as d2 on d1.symbol = d2.symbol and d1.currency_name = d2.currency_name
-      where date(created_at) = date ('now') and d1.ranking < 101
-      order by market_cap_change desc limit 5"
-    string_line = ""
-    records_array = ActiveRecord::Base.connection.execute(sqlite_sql)
-    records_array.each do |hash|
-      string_line = string_line + hash["currency_name"]+"/"+hash["symbol"]+" : market cap up "+hash["market_cap_change"].to_s[0..5]+"%, weekly price " + (hash["weekly_change"]>0 ? "up " : "down ")+hash["weekly_change"].to_s+"% and now ranked "+hash["ranking"].to_s+"\n\n"
-    end
-    message = [{type: 'text', text:"本日市值上漲前5名"},
-               {type: 'text', text:string_line[0..-5]}]
-  end
-
-  def top15change_message 
-    string_line = ""
-    sqlite_sql = '
-    select   
-          d1.ranking as ranking,
-          d1.symbol as symbol,
-          d1.daily_change as price_change,
-          d1.currency_name as currency_name,
-          ranking2 - d1.ranking as ranking_change
-    from coinmarketcaps as d1 INNER JOIN (
-      select ranking as ranking2,
-            market_cap as market_cap2,
-            symbol,
-            currency_name
-      from coinmarketcaps
-      where date(created_at) = date ("now" , "-1 day")
-      ) as d2 on d1.symbol = d2.symbol and d1.currency_name = d2.currency_name
-    where date(created_at) = date ("now") and d1.ranking < 16 and (ranking2 != d1.ranking)
-    order by ranking_change desc'
-    records_array = ActiveRecord::Base.connection.execute(sqlite_sql)
-    records_array.each do |hash|
-      string_line = string_line + "Ranking of "+hash["currency_name"]+"/"+hash["symbol"]+" goes "+(hash["ranking_change"]>0 ? "up " : "down ")+hash["ranking_change"].to_s+", now top"+hash["ranking"].to_s+", price "+(hash["price_change"]>0 ? "up " : "down ")+hash["price_change"].to_s+"%\n\n"
-    end
-    message = [{type: 'text', text:"本日市場主要變動"},
-               {type: 'text', text:string_line[0..-5]}]
-  end
-
   def my_subscription_message(user_id)
     message_str = "固定價格追蹤：\n"
     FixPrice.where(lineuser_id: user_id).all.each do |f|
@@ -358,6 +251,9 @@ class WebhookController < ApplicationController
   end
 
 # Event Handling Logic
+  def get_news_content(postback_data)
+    PushRecord.where(message_type: postback_data).where(news_date: Time.current.strftime("%d/%m/%Y")).first.content
+  end
 
   def postbackHandler(postback_data)
     case postback_data
@@ -374,13 +270,17 @@ class WebhookController < ApplicationController
       when "keyin"
         message = [{type: 'text', text: "Type name here!"}]
       when "marketcap10"
-        message = marketcap10_message
+        message = [{type: 'text', text:"本日市場規模前10名"},
+                   {type: 'text', text:get_news_content(postback_data)}]
       when "top15change"
-        message = top15change_message
+        message = [{type: 'text', text:"本日市場主要變動"},
+                   {type: 'text', text:get_news_content(postback_data)}]
       when "pricechange10"
-        message = pricechange10_message
+        message = [{type: 'text', text:"本日漲跌幅前5名"},
+                   {type: 'text', text:get_news_content(postback_data)}]
       when "capchange5"
-        message = capchange5_message
+        message = [{type: 'text', text:"本日市值上漲前5名"},
+                   {type: 'text', text:get_news_content(postback_data)}]
       when "back"
         message = main_meun
       when "bye"
@@ -446,7 +346,7 @@ class WebhookController < ApplicationController
   end
 
   def morning_news
-    news_today = "功能未完成！"
+    news_today = "頭條功能建置中！"
     message = {
       "type": "template",
       "altText": "this is a buttons template",
