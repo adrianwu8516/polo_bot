@@ -82,6 +82,7 @@ end
 #headline_str = ""
 
 def marketcap10_message
+  puts "=====================\nmarketcap10_message"
   string_line = ""
   records_array = ActiveRecord::Base.connection.execute(market_cap10)
   records_array[0..14].each do |hash|
@@ -92,6 +93,7 @@ def marketcap10_message
 end
 
 def pricechange10_message
+  puts "=====================\npricechange10_message"
   string_line = ""
   records_array_up = ActiveRecord::Base.connection.execute(price_up5)
   records_array_down = ActiveRecord::Base.connection.execute(price_down5)
@@ -106,6 +108,7 @@ def pricechange10_message
 end
 
 def capchange5_message
+  puts "=====================\ncapchange5_message"
   string_line = ""
   records_array = ActiveRecord::Base.connection.execute(cap_change5)
   records_array.each do |hash|
@@ -116,6 +119,7 @@ def capchange5_message
 end
 
 def top15change_message
+  puts "=====================\ntop15change_message"
   string_line = ""
   records_array = ActiveRecord::Base.connection.execute(top15change)
   records_array.each do |hash|
@@ -125,6 +129,12 @@ def top15change_message
   news_message_record(message, "top15change")
 end
 
+def run_news_deliver
+  puts "=====================\nrun_news_deliver"
+  Lineuser.where(news: true).where(following: true).to_a do |n|
+    client.push_message(n.userId, morning_news)
+  end
+end
 
 namespace :regular do
     desc "每天生產早報，存入DB"
@@ -133,5 +143,6 @@ namespace :regular do
       pricechange10_message
       capchange5_message
       top15change_message
+      run_news_deliver
     end
 end

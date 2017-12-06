@@ -327,7 +327,7 @@ class WebhookController < ApplicationController
     if Lineuser.where(userId: user_id).where(following: true).exists?
       return [{type: 'text', text: "已經註冊過囉！"}]
     else
-      @lineuser = Lineuser.new(userId: user_id, following: true, news: false, subscribe: "")
+      @lineuser = Lineuser.new(userId: user_id, following: true, news: true, subscribe: "")
       if @lineuser.save
         return hello_meun
       else
@@ -365,6 +365,5 @@ class WebhookController < ApplicationController
           ]
       }
     }
-    #client.push_message(lineuser_id, message)
   end
 end
