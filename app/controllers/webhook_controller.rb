@@ -201,7 +201,7 @@ class WebhookController < ApplicationController
     if (getTradingCurrencies.include? setting_info)
       target = Subscription.where(currency_pair: setting_info, lineuser_id: user_id, status: "ON")
       if input_text.include? "+"
-        if target.nil?
+        if target.empty?
           Subscription.create(currency_pair: setting_info, lineuser_id: user_id, status: "ON")
           message = [{type: 'text', text: "Subscription On:\n"+setting_info}]
         else
@@ -240,11 +240,11 @@ class WebhookController < ApplicationController
 
   def my_subscription_message(user_id)
     message_str = "固定價格追蹤：\n"
-    FixPrice.where(lineuser_id: user_id).all.each do |f|
+    FixPrice.where(lineuser_id: user_id).where(status: "ON").all.each do |f|
       message_str = message_str + f.currency_pair + f.logic + f.setting_price.to_s + "\n"
     end
     message_str = message_str + "市場監控訂閱：\n"
-    Subscription.where(lineuser_id: user_id).all.each do |s|
+    Subscription.where(lineuser_id: user_id).where(status: "ON").all.each do |s|
       message_str = message_str + s.currency_pair + "\n"
     end
     message = [{type: 'text', text: message_str[0..-2]}]
@@ -346,7 +346,7 @@ class WebhookController < ApplicationController
   end
 
   def morning_news
-    news_today = "頭條功能建置中！"
+    news_today = "自動生成頭條功能，建置中！"
     message = {
       "type": "template",
       "altText": "this is a buttons template",

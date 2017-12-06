@@ -79,6 +79,8 @@ def top15change
   order by ranking_change desc'
 end
 
+#headline_str = ""
+
 def marketcap10_message
   string_line = ""
   records_array = ActiveRecord::Base.connection.execute(market_cap10)
