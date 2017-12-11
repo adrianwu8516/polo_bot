@@ -8,7 +8,7 @@ class WebhookController < ApplicationController
   require 'reminder_library'
 
   def client
-    binding.pry
+    #binding.pry
     if params['events'][0]['source']['userId'] == "U40580bf26a7421c676ccf449e34a05a4"
       client = Line::Bot::Client.new { |config|
         config.channel_secret = 'd60c7f003ea03b1737ef3ceff75e5fbb'
@@ -23,9 +23,6 @@ class WebhookController < ApplicationController
   end
 
   def callback
-
-
-
 
     signature = request.env['HTTP_X_LINE_SIGNATURE']
 
