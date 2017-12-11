@@ -19,7 +19,7 @@ end
 # 無法讓變數跟字符一起跑
 # Not open to regular users
 def run_price_change_reminder
-    puts "========================\nrun_price_change_reminder"
+    puts "========================\nrun_price_change_reminder\n" + Time.current.to_s
     PriceChange.where(status:"ON").each do |task|
     	drastic_price_change_reminder(
 	        task.currency_pair,

@@ -8,13 +8,24 @@ class WebhookController < ApplicationController
   require 'reminder_library'
 
   def client
-    client = Line::Bot::Client.new { |config|
-      config.channel_secret = Rails.configuration.line_credential['channel_secret']
-      config.channel_token = Rails.configuration.line_credential['channel_token']
-    }
+    binding.pry
+    if params['events'][0]['source']['userId'] == "U40580bf26a7421c676ccf449e34a05a4"
+      client = Line::Bot::Client.new { |config|
+        config.channel_secret = 'd60c7f003ea03b1737ef3ceff75e5fbb'
+        config.channel_token = 'OyxxG4A0gRn9Y+XjSeiZBsRjXrkvguTnqSpfam2WemnFu44yanS1KaWdM6M9k3GvRku4a8kvG4ZqaoWU7JvifeciOPoEcWCKc6vBrbV5eG7cC2XaxhHtt56DmFmeTzJtV4392pD9P+RFFEaIexaIyAdB04t89/1O/w1cDnyilFU='
+      }
+    elsif
+      client = Line::Bot::Client.new { |config|
+        config.channel_secret = Rails.configuration.line_credential['channel_secret']
+        config.channel_token = Rails.configuration.line_credential['channel_token']
+      }
+    end
   end
 
   def callback
+
+
+
 
     signature = request.env['HTTP_X_LINE_SIGNATURE']
 
@@ -65,7 +76,7 @@ class WebhookController < ApplicationController
   def hello_meun
     message ={
       "type": "template",
-      "altText": "this is a buttons template",
+      "altText": "歡迎使用",
       "template": {
         "type": "buttons",
         "thumbnailImageUrl": "https://i.imgur.com/QnUv4ER.jpg",
@@ -82,7 +93,7 @@ class WebhookController < ApplicationController
   def main_meun
     message ={
       "type": "template",
-      "altText": "this is a buttons template",
+      "altText": "請選擇功能",
       "template": {
         "type": "buttons",
         "title": "錢錢錢，哪裡有錢！",
@@ -100,7 +111,7 @@ class WebhookController < ApplicationController
   def need_quote_menu
     message ={
       "type": "template",
-      "altText": "this is a buttons template",
+      "altText": "請輸入想查詢的貨幣",
       "template": {
         "type": "buttons",
         "title": "以Poloniex，對USDT數據為準",
@@ -118,7 +129,7 @@ class WebhookController < ApplicationController
   def need_reminder_menu
     message ={
       "type": "template",
-      "altText": "this is a buttons template",
+      "altText": "請設定提醒條件",
       "template": {
         "type": "buttons",
         "title": "目前提供訂閱，每日行情晨報，各檔價量即時監控報告。",
@@ -252,7 +263,7 @@ class WebhookController < ApplicationController
 
 # Event Handling Logic
   def get_news_content(postback_data)
-    PushRecord.where(message_type: postback_data).where(news_date: Time.current.strftime("%d/%m/%Y")).first.content
+    PushRecord.where(message_type: postback_data).where(news_date: Time.current.strftime("%d/%m/%Y")).last.content
   end
 
   def postbackHandler(postback_data)
@@ -266,7 +277,7 @@ class WebhookController < ApplicationController
       when "change_settings"
         message = change_settings_menu
       when "reset_price"
-        message = [{type: 'text', text: "Not Implemented"}]
+        message = [{type: 'text', text: "輸入+USDT_BTC>10000，可以在當BTC對USDT大於10000時獲得提醒。"}]
       when "keyin"
         message = [{type: 'text', text: "Type name here!"}]
       when "marketcap10"

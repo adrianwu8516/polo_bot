@@ -10,7 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171206134137) do
+ActiveRecord::Schema.define(version: 20171209101842) do
+
+  create_table "coingeckos", force: :cascade do |t|
+    t.integer  "ranking"
+    t.string   "currency_name"
+    t.string   "symbol"
+    t.float    "market_cap"
+    t.float    "liquidity"
+    t.float    "developer_index"
+    t.float    "community_index"
+    t.float    "public_index"
+    t.float    "total"
+    t.string   "url"
+    t.boolean  "expired"
+    t.datetime "created_at",      null: false
+    t.datetime "updated_at",      null: false
+  end
 
   create_table "coinmarketcaps", force: :cascade do |t|
     t.integer  "ranking"
@@ -25,6 +41,7 @@ ActiveRecord::Schema.define(version: 20171206134137) do
     t.float    "weekly_change"
     t.datetime "created_at",     null: false
     t.datetime "updated_at",     null: false
+    t.boolean  "expired"
   end
 
   create_table "fix_prices", force: :cascade do |t|

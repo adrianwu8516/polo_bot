@@ -26,9 +26,12 @@ set :output, 'log/cron.log' #設定log的路徑
 
 every 1.day, :at => '9:00 am' do
     rake "regular:coinmarketcapToday"
+end
+
+every 1.day, :at => '9:03 am' do
     rake "regular:daily_news"
 end
 
-every 2.hours do
+every 5.minutes do
 	rake "regular:price_change"
 end
